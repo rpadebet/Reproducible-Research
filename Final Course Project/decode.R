@@ -12,3 +12,15 @@ decode<-function(inp){
     }
     
 }
+
+decoder<-function(v){
+    
+    if(length(v[2])==0){return (1)}
+    else if(v[2]=="K") {return(1000)}
+    else if(v[2]=="M") {return(1000000)}
+    else if(v[2]=="B") {return(1000000000)}
+    else if(v[2]=="0") {return(1)}
+    else if(v[2]=="") {return(1)} 
+    else return(1)
+    }
+    
