@@ -12,12 +12,12 @@ library(ggthemes)        # themes for plots
 library(plotly)          # for fancier interactive plots
 
 ## Downloading file and decompressing
-setwd("./Final Course Project/")
+#setwd("./Final Course Project/")
 url<-c("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2")
 
 ## Run the following code once
-download.file(url,"./Data/StormData.csv.bz2",method = "curl")
-bunzip2("./Data/StormData.csv.bz2",remove = FALSE)
+#download.file(url,"./Data/StormData.csv.bz2",method = "curl")
+#bunzip2("./Data/StormData.csv.bz2",remove = FALSE)
 
 ## Reading into a data.table
 StormData<-fread("./Data/StormData.csv",header = TRUE,strip.white = TRUE)
@@ -33,28 +33,30 @@ StormData_sub <- StormData[year(BgnDate)>1992,
                             EVTYPE,FATALITIES,INJURIES,
                             PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)]
 
-Data_df<-as.data.frame(StormData_sub)
+Data_tbl<-as.tbl(StormData_sub)
+
 
 ## Computing the Total Dollar Damage per event
 
-### Function used to decode the EXP in the dataset
-decoder<-function(v){
-    
-    if(length(v[2])==0){return (1)}
-    else if(v[2]%in% c("H","h")) {return(100)}
-    else if(v[2]%in% c("K","k")) {return(1000)}
-    else if(v[2]%in% c("M","m")) {return(1000000)}
-    else if(v[2]%in% c("B","b")) {return(1000000000)}
-    else if(v[2]%in% c("0","1","2","3","4","5","6","7","8","9")) {10^as.numeric(v[2])}
-    else if(v[2]=="") {return(1)} 
-    else return(1)
-}
-
+### Creating the encoding dataframe for EXP columns
+mapping <-as.tbl(data.frame(EXP = c("","H","h","K","k",
+                                    "m","M","b","B","0",
+                                    "1","2","3","4","5",
+                                    "6","7","8","9"),
+                            VAL = c(1,100,100,1000,1000,
+                                    1e6,1e6,1e9,1e9,1,
+                                    1e1,1e2,1e3,1e4,1e5,
+                                    1e6,1e7,1e8,1e9)))
 ### Preparing the dataset for analysis
-PROPEXP<-apply(Data_df[,c(11,12)],1,decoder)
-CROPEXP<-apply(Data_df[,c(13,14)],1,decoder)
-Data_df<-cbind(Data_df,PROPEXP,CROPEXP)
-Data_df <- mutate(Data_df,Tot_damage = (PROPDMG*PROPEXP)+(CROPDMG*CROPEXP))
+
+Data_df <- Data_tbl%>%
+    left_join(y = mapping,by= c("CROPDMGEXP"="EXP"))%>%
+    rename(CROPEXP = VAL)%>%
+    mutate(CROPEXP = replace(CROPEXP,which(is.na(CROPEXP)),1))%>%
+    left_join(y = mapping,by= c("PROPDMGEXP"="EXP"))%>%
+    rename(PROPEXP = VAL)%>%
+    mutate(PROPEXP = replace(PROPEXP,which(is.na(PROPEXP)),1))%>%
+    mutate(Tot_damage = (PROPDMG*PROPEXP)+(CROPDMG*CROPEXP))
 
 ## Top Event Types which cause the most economic damage
 
