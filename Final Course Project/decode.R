@@ -1,16 +1,5 @@
 
-# Function used to decode the EXP in the dataset
-decoder<-function(v){
-    
-    if(length(v[2])==0){return (1)}
-    else if(v[2]%in% c("H","h")) {return(100)}
-    else if(v[2]%in% c("K","k")) {return(1000)}
-    else if(v[2]%in% c("M","m")) {return(1000000)}
-    else if(v[2]%in% c("B","b")) {return(1000000000)}
-    else if(v[2]%in% c("0","1","2","3","4","5","6","7","8")) {10^as.numeric(v[2])}
-    else if(v[2]=="") {return(1)} 
-    else return(1)
-}
+
 
 ## Function to compute total Dollar Damage
 

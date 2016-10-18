@@ -1,16 +1,22 @@
-##########################################################
-## Final Course Project Script for Reproducible Research##
-##########################################################
+---
+title: "Course Project - Storm Data"
+author: "Rohit Padebettu"
+date: "10/17/2016"
+output: html_document
+---
 
 ## Loading libraries
-library(R.utils)         # for unzipping the file
-library(data.table)      # for quick reading and subsetting
-library(lubridate)       # for date transformations
-library(dplyr)           # for data transformations
-library(ggplot2)         # for plots
-library(ggthemes)        # themes for plots
-library(plotly)          # for fancier interactive plots
+```{r,echo= TRUE,warning=FALSE}
+suppressPackageStartupMessages(library(R.utils))         # for unzipping the file
+suppressPackageStartupMessages(library(data.table))      # for quick reading and subsetting
+suppressPackageStartupMessages(library(lubridate))       # for date transformations
+suppressPackageStartupMessages(library(dplyr) )          # for data transformations
+suppressPackageStartupMessages(library(ggplot2))         # for plots
+suppressPackageStartupMessages(library(ggthemes))        # themes for plots
+suppressPackageStartupMessages(library(plotly) )         # for fancier interactive plots
+```
 
+```{r DownloadData,eval=FALSE}
 ## Downloading file and decompressing
 setwd("./Final Course Project/")
 url<-c("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2")
@@ -18,15 +24,18 @@ url<-c("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2
 ## Run the following code once
 download.file(url,"./Data/StormData.csv.bz2",method = "curl")
 bunzip2("./Data/StormData.csv.bz2",remove = FALSE)
+```
 
 ## Reading into a data.table
+```{r ReadData,cache=TRUE,warning=FALSE}
 StormData<-fread("./Data/StormData.csv",header = TRUE,strip.white = TRUE)
+```
 
-### Converting to Date format to allow subsetting
+### Converting to Date format to allow subsetting and Getting only post 1992 data
+```{r DataSub}
 StormData$BgnDate <- as_date(mdy_hms(StormData$BGN_DATE))
 StormData$EndDate <- as_date(mdy_hms(StormData$END_DATE))
 
-### Getting only post 1992 data
 StormData_sub <- StormData[year(BgnDate)>1992,
                            .(BgnDate,EndDate,REFNUM,
                             STATE,STATE__,COUNTY,COUNTYNAME,
@@ -34,10 +43,12 @@ StormData_sub <- StormData[year(BgnDate)>1992,
                             PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)]
 
 Data_df<-as.data.frame(StormData_sub)
+```
 
 ## Computing the Total Dollar Damage per event
 
 ### Function used to decode the EXP in the dataset
+```{r fDecode}
 decoder<-function(v){
     
     if(length(v[2])==0){return (1)}
@@ -49,16 +60,21 @@ decoder<-function(v){
     else if(v[2]=="") {return(1)} 
     else return(1)
 }
+```
 
+```{r Prepare,cache=TRUE}
 ### Preparing the dataset for analysis
 PROPEXP<-apply(Data_df[,c(11,12)],1,decoder)
 CROPEXP<-apply(Data_df[,c(13,14)],1,decoder)
 Data_df<-cbind(Data_df,PROPEXP,CROPEXP)
 Data_df <- mutate(Data_df,Tot_damage = (PROPDMG*PROPEXP)+(CROPDMG*CROPEXP))
 
+```
+
 ## Top Event Types which cause the most economic damage
 
 ### Select the top 50 percentile of event data
+```{r EcoDmg}
 n=50
 Data_calc<-Data_df%>%
     filter(Tot_damage > quantile(Tot_damage, prob = 1 - n/100))%>%
@@ -67,7 +83,9 @@ Data_calc<-Data_df%>%
     group_by(Event)%>%
     summarize(EventDamage = sum(Damage)/1000000000)%>%
     arrange(desc(EventDamage))
+```
 
+```{r EcoDmgPlot,fig.height=5,fig.width=8}
 ### Select top 10 Event Types
 Data_top10<-Data_calc[c(1:10),]
 
@@ -81,14 +99,19 @@ g1<-ggplot(Data_top10,aes(x=factor(Event),y=EventDamage,fill=Event))+
     ggtitle("Most Economically Damaging Event Types")+
     theme_gdocs()
 print(g1)
+```
+
 
 ## Yearly Economic Damage
+```{r YearEcoDmg}
 Data_year<-Data_df%>%
     select(Date=BgnDate,Event=EVTYPE,Damage = Tot_damage)%>%
     group_by(Year = year(Date))%>%
     summarize(YearlyDamage = sum(Damage)/1000000000)%>%
     arrange(Year)
+```
 
+```{r YearEcoDmgPlot,fig.height=5,fig.width=8}
 ### Plot the results
 g2<-ggplot(Data_year,aes(x=factor(Year),y=YearlyDamage,fill=Year))+
     geom_bar(stat="identity",col="black",width=0.5)+
@@ -99,9 +122,10 @@ g2<-ggplot(Data_year,aes(x=factor(Year),y=YearlyDamage,fill=Year))+
     ggtitle("Yearly Economic Damage")+
     theme_gdocs()
 ggplotly(g2)
-
+```
 
 ## Top Event Types which cause the most human damage
+```{r HumanDmg}
 Data_hum<-Data_df%>%
     select(Date=BgnDate,Event=EVTYPE,FATALITIES,INJURIES)%>%
     mutate(Event = as.factor(toupper(trim(Event))))%>%
@@ -110,11 +134,15 @@ Data_hum<-Data_df%>%
               Deaths=sum(FATALITIES))%>%
     mutate(Intensity = Deaths/HumanDamage)%>%
     arrange(desc(HumanDamage))
+```
 
 ### Select top 10 Event Types
+
+```{r HumanDmgPlot,fig.height=5,fig.width=8}
 Data_top10_h<-Data_hum[c(1:10),]
 
 ### Plot the results
+
 g3<-ggplot(Data_top10_h,aes(x=factor(Event),y=HumanDamage,fill=Intensity))+
     geom_bar(stat="identity",col="white",width=0.5)+
     coord_flip()+
@@ -123,3 +151,4 @@ g3<-ggplot(Data_top10_h,aes(x=factor(Event),y=HumanDamage,fill=Intensity))+
     ggtitle("Event types causing most human damage")+
     theme_fivethirtyeight()
 print(g3)
+```
