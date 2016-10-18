@@ -1,5 +1,5 @@
 ---
-title: "Analyzing impact of US Storms"
+title: "Analyzing Impact of US Storms"
 author: "Rohit Padebettu"
 date: "10/17/2016"
 output: html_document
@@ -48,15 +48,13 @@ StormData<-fread("./Data/StormData.csv",header = TRUE,strip.white = TRUE)
 ```
 
 ### Date Processing
-Once the raw data is read into the memory, we see from the output of the `fread` function that it has *902297* rows and *37* variables. The `data.table` itself takes about 0.523GB space in our memory.
-
-We then proceed to transform the date columns in the dataset which appear as `Character` format. We use the `lubridate` package here to transform the `BGN_DATE` and 'END_DATE` columns into Date format. We do this transformation to allow us to subset the data starting from year 1993 onwards. 
+Once the raw data is read into the memory, we see from the output of the `fread` function that it has *902297* rows and *37* variables. The `data.table` itself takes about 0.523GB space in our memory.We then proceed to transform the date columns in the dataset which appear as `Character` format. We use the `lubridate` package here to transform the `BGN_DATE` and 'END_DATE` columns into Date format. We do this transformation to allow us to subset the data starting from year 1993 onwards. 
 
 Though the overall dataset contains events beginning in 1950, recording of such events for all varieties of storms began around 1990's. If we chose to use the whole dataset, our analysis could potentially be skewed by the **bias in data collection**
 
 Furthermore we choose only few of 37 columns available to us in order to reduce the memory footprint and also use only the data required to perform the analysis.
 
-```{r DataSub}
+```{r DataSub,eval=TRUE}
 StormData$BgnDate <- as_date(mdy_hms(StormData$BGN_DATE))
 StormData$EndDate <- as_date(mdy_hms(StormData$END_DATE))
 
@@ -72,9 +70,10 @@ Data_df<-as.data.frame(StormData_sub)
 ### Economic Damage computation
 The dataset available to us has two columns `PROPDMG` and `PROPDMGEXP` which together help us get an assessment of total property damage caused by one particular storm/event. Similarly we also have `CROPDMG` and `CROPDMGEXP` which help us understand the Crop damages caused by the storm. To assess the total economic damage, we must compute the total damage caused by the storm to Property as well as Crop. 
 
-The variables `PROPDMGEXP`,`CROPDMGEXP` in the dataset are coded factors where `M` stands for a `million`,`B` for a `billion`, `K` for a `Thousand` and so on. So in order to allow us to calculate the total damage, we must first decode these variables into their numeric forms. the function below `r decoder` helps us do the same
+The variables `PROPDMGEXP`,`CROPDMGEXP` in the dataset are coded factors where `M` stands for a `million`,`B` for a `billion`, `K` for a `Thousand` and so on. So in order to allow us to calculate the total damage, we must first decode these variables into their numeric forms. the function below `decoder` helps us do the same
 
-```{r fDecode,echo=TRUE}
+```{r Decoder,echo=TRUE,eval=TRUE}
+
 decoder<-function(v){
     if(length(v[2])==0){return (1)}
     else if(v[2]%in% c("H","h")) {return(100)}
@@ -107,11 +106,9 @@ Data_df <- mutate(Data_df,Tot_damage = (PROPDMG*PROPEXP)+(CROPDMG*CROPEXP))
 
 The first analysis we perform is to find out which of the event types in the dataset have caused the highest economic damage.
 
-Since most of the events in the dataset seem to have caused relatively a small amount of economic damage, we prune down the events set to include only the events which are in the top 50% of damage caused.
+Since most of the events in the dataset seem to have caused relatively a small amount of economic damage, we prune down the events set to include only the events which are in the top 50% of damage caused.We proceed to clean up the EVTYPE variable to a reasonable extent to allow us to factorize the variable and aggregate the data over each event type. 
 
-We proceed to clean up the EVTYPE variable to a reasonable extent to allow us to factorize the variable and aggregate the data over each event type. 
-
-It still appears from the resulting `Event` factors that there are potentially duplicate Event Types still encoded separately, but cleaning those up will require a lot more manual effort and time which is beyond the scope of the current analysis.
+*It still appears from the resulting `Event` factors that there are potentially duplicate Event Types still encoded separately, but cleaning those up will require a lot more manual effort and time which is beyond the scope of the current analysis.*
 
 ```{r EcoDmg}
 n=50
@@ -131,9 +128,8 @@ Once the data is aggregated and sorted as above, we proceed to select the top 10
 As we can see below the maximum economic damage has been caused by Flood related events by far, followed by Hurricane, Storm and Tornado events.
 
 ```{r EcoDmgPlot,fig.height=5,fig.width=8,fig.cap="Top 10 most economically damaging events"}
-### Select top 10 Event Types
-Data_top10<-Data_calc[c(1:10),]
 
+Data_top10<-Data_calc[c(1:10),]
 
 g1<-ggplot(Data_top10,aes(x=factor(Event),y=EventDamage,fill=Event))+
     geom_bar(stat="identity",col="black",width=0.5)+
@@ -164,11 +160,9 @@ Data_year<-Data_df%>%
 When we plot the year over year economic damage caused by the storms we can clearly see from the chart below that the maximum economic damage was caused in the years **2005** and **2006** mostly related to flooding and displacement caused by the **Katrina hurricane**
 
 ```{r YearEcoDmgPlot,fig.height=5,fig.width=8,fig.cap="Yearly Economic Damage from weather events"}
-### Plot the results
-g2<-ggplot(Data_year,aes(x=factor(Year),y=YearlyDamage,fill=Year))+
-    geom_bar(stat="identity",col="black",width=0.5)+
-    coord_flip()+
-    guides(fill=FALSE)+
+
+g2<-ggplot(Data_year,aes(x=Year,y=YearlyDamage))+
+    geom_bar(stat="identity",col="black",width=0.5,fill='salmon')+
     ylab("Economic Damage(in $ billions)")+
     xlab("Years")+
     ggtitle("Yearly Economic Damage")+
@@ -180,9 +174,7 @@ ggplotly(g2)
 
 In the last part of our analysis we try and understand the human impact of these weather events. We analyze both the Fatalities and Injuries reported in the dataset to come up with two new variables: `HumanDamage` which we define as the total of injuries and fatalities caused by each event and `Intensity` which we define as the ratio of fatalities to `HumanDamage`. 
 
-This allows us to categorize the event types not just by how many people were impacted by each event, but also understand how hard the impact was per event type.
-
-We use the cleaned up dataset to select the `FATALITIES` and `INJURY` variables. As done in the first economic damage analysis, we clean and factorize the `EVTYPE` data into `Event` to allow us to aggregate and sort
+This allows us to categorize the event types not just by how many people were impacted by each event, but also understand how hard the impact was per event type.We use the cleaned up dataset to select the `FATALITIES` and `INJURY` variables. As done in the first economic damage analysis, we clean and factorize the `EVTYPE` data into `Event` to allow us to aggregate and sort
 
 ```{r HumanDmg}
 Data_hum<-Data_df%>%
@@ -197,28 +189,30 @@ Data_hum<-Data_df%>%
 
 ###Top 10 Event Types causing most Human Damage
 
-After we aggregate the data and calculate our new `HumanDamage` and `Intensity` variables per event type, we sort them in decreasing order of `HumanDamage`. We then pick the top 10 events from the resulting set to plot below. The chart below is also color coded to show the `Intensity` of each event type (with lighter colors showing higher intensity).
+After we aggregate the data and calculate our new `HumanDamage` and `Intensity` variables per event type, we sort them in decreasing order of `HumanDamage`. We then pick the top 10 events from the resulting set to plot below. The chart below is also color coded to show the `Intensity` of each event type (with darker colors showing higher intensity).
 
 We can clearly see below that while Tornadoes and Flood related events have caused by far the greated human damage. Flash Floods and Heat related events cause 3 times as many deaths among the reported cases.
 
 ```{r HumanDmgPlot,fig.height=5,fig.width=8,fig.cap="Top 10 weather events most harmful to humans"}
 Data_top10_h<-Data_hum[c(1:10),]
 
-### Plot the results
-
 g3<-ggplot(Data_top10_h,aes(x=factor(Event),y=HumanDamage,fill=Intensity))+
-    geom_bar(stat="identity",col="white",width=0.5)+
+    geom_bar(stat="identity",col="black",width=0.7)+
+    scale_fill_gradient(low = "yellow", high = "red")+
     coord_flip()+
     ylab("Human Damage(Fatalities+Injuries)")+
     xlab("Top 10 Event Types")+
     ggtitle("Event types causing most human damage")+
     theme_fivethirtyeight()
 print(g3)
+
 ```
 
+
 ##Conclusion
-From our analysis of the US Storm dataset for the period starting in 1993,we conclude the following
--Flood and Flood related damages have caused by far the greatest economic damage.
--The greatest economic damage in the last 20 years occurred in the years 2005 and 2006 as a result of Hurrican Katrina.
--Tornadoes and Flood related events have also lead to the greatest human damage.
--Heat and Flash Flood related events seem to have some of the highest intensities of death in relation to the human damage caused.
+From our analysis of the US Storm dataset for the period starting in 1993,we conclude the following:
+
+* Flood and Flood related damages have caused by far the greatest economic damage.
+* The greatest economic damage in the last 20 years occurred in the years 2005 and 2006 as a result of Hurrican Katrina.
+* Tornadoes and Flood related events have also lead to the greatest human damage.
+* Heat and Flash Flood related events seem to have some of the highest intensities of death in relation to the human damage caused.

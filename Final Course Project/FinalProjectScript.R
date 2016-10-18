@@ -90,10 +90,8 @@ Data_year<-Data_df%>%
     arrange(Year)
 
 ### Plot the results
-g2<-ggplot(Data_year,aes(x=factor(Year),y=YearlyDamage,fill=Year))+
-    geom_bar(stat="identity",col="black",width=0.5)+
-    coord_flip()+
-    guides(fill=FALSE)+
+g2<-ggplot(Data_year,aes(x=Year,y=YearlyDamage))+
+    geom_bar(stat="identity",col="black",width=0.5,fill='salmon')+
     ylab("Economic Damage(in $ billions)")+
     xlab("Years")+
     ggtitle("Yearly Economic Damage")+
@@ -116,7 +114,8 @@ Data_top10_h<-Data_hum[c(1:10),]
 
 ### Plot the results
 g3<-ggplot(Data_top10_h,aes(x=factor(Event),y=HumanDamage,fill=Intensity))+
-    geom_bar(stat="identity",col="white",width=0.5)+
+    geom_bar(stat="identity",col="black",width=0.5)+
+    scale_fill_gradient(low = "yellow", high = "red")+
     coord_flip()+
     ylab("Human Damage(Fatalities+Injuries)")+
     xlab("Top 10 Event Types")+
