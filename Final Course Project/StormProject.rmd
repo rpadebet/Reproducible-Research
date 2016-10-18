@@ -127,7 +127,7 @@ Once the data is aggregated and sorted as above, we proceed to select the top 10
 
 As we can see below the maximum economic damage has been caused by Flood related events by far, followed by Hurricane, Storm and Tornado events.
 
-```{r EcoDmgPlot,fig.height=5,fig.width=8,fig.cap="Top 10 most economically damaging events"}
+```{r EcoDmgPlot,fig.height=5,fig.width=10,fig.cap="Top 10 most economically damaging events"}
 
 Data_top10<-Data_calc[c(1:10),]
 
@@ -159,7 +159,7 @@ Data_year<-Data_df%>%
 
 When we plot the year over year economic damage caused by the storms we can clearly see from the chart below that the maximum economic damage was caused in the years **2005** and **2006** mostly related to flooding and displacement caused by the **Katrina hurricane**
 
-```{r YearEcoDmgPlot,fig.height=5,fig.width=8,fig.cap="Yearly Economic Damage from weather events"}
+```{r YearEcoDmgPlot,fig.height=5,fig.width=10,fig.cap="Yearly Economic Damage from weather events"}
 
 g2<-ggplot(Data_year,aes(x=Year,y=YearlyDamage))+
     geom_bar(stat="identity",col="black",width=0.5,fill='salmon')+
@@ -193,7 +193,7 @@ After we aggregate the data and calculate our new `HumanDamage` and `Intensity` 
 
 We can clearly see below that while Tornadoes and Flood related events have caused by far the greated human damage. Flash Floods and Heat related events cause 3 times as many deaths among the reported cases.
 
-```{r HumanDmgPlot,fig.height=5,fig.width=8,fig.cap="Top 10 weather events most harmful to humans"}
+```{r HumanDmgPlot,fig.height=5,fig.width=10,fig.cap="Top 10 weather events most harmful to humans"}
 Data_top10_h<-Data_hum[c(1:10),]
 
 g3<-ggplot(Data_top10_h,aes(x=factor(Event),y=HumanDamage,fill=Intensity))+
